@@ -172,7 +172,36 @@ Continue to next comment.
 
 **If `PLATFORM=gitlab`:**
 
-Post as a reply to the original comment thread using `in_reply_to_id`:
+**Step 1: Look up the discussion_id for the original note**
+
+GitLab has two types of MR comments:
+- **Regular notes**: General MR comments (use `in_reply_to_id`)
+- **DiffNotes**: Code review comments on specific lines (require posting to the discussion endpoint)
+
+To reply correctly, first look up the discussion containing the original note:
+
+```bash
+glab api "projects/$PROJECT_ID/merge_requests/$MR_NUMBER/discussions" | \
+  jq -r '.[] | select(.notes[].id == '$ORIGINAL_NOTE_ID') | .id'
+```
+
+This returns the `DISCUSSION_ID` if the note is part of a discussion thread.
+
+**Step 2: Post the reply**
+
+**If DISCUSSION_ID was found (DiffNote/code review comment):**
+
+Post to the discussions endpoint to create a threaded reply:
+
+```bash
+glab api -X POST \
+  "projects/$PROJECT_ID/merge_requests/$MR_NUMBER/discussions/$DISCUSSION_ID/notes" \
+  -f body="$RESPONSE_TEXT"
+```
+
+**If no DISCUSSION_ID (regular MR note):**
+
+Fall back to the notes endpoint with `in_reply_to_id`:
 
 ```bash
 curl -s -X POST \
@@ -181,8 +210,6 @@ curl -s -X POST \
   -H "Content-Type: application/json" \
   -d "{\"body\": \"$ESCAPED_RESPONSE_TEXT\", \"in_reply_to_id\": $ORIGINAL_NOTE_ID}"
 ```
-
-This ensures the response appears as a threaded reply to the reviewer's original comment, not as a standalone MR comment.
 
 **Check response:**
 - If response contains `"id":` - success
