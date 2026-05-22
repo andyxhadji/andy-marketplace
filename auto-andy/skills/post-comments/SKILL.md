@@ -62,17 +62,28 @@ Nothing to post.
 ```
 Exit.
 
-### 1.4 Confirm user has reviewed
+### 1.4 Display and confirm comments
+
+**Display each comment with original and response side-by-side:**
+
+For each proposed comment, display:
+```
+---
+### $PROJECT MR !$MR_NUMBER (@$AUTHOR)
+
+**Original comment:**
+> $ORIGINAL_COMMENT
+
+**Proposed response:**
+$PROPOSED_RESPONSE
+---
+```
 
 **If `DRY_RUN=false`:**
 
-Ask:
+After displaying all comments, ask:
 ```
-Have you reviewed and edited ~/.auto-andy/pending-approval.md?
-
-The following comments will be posted:
-
-$COMMENT_PREVIEW_LIST
+The above $COMMENT_COUNT comments will be posted.
 
 Type 'yes' to proceed, or 'no' to cancel:
 ```
@@ -80,7 +91,7 @@ Type 'yes' to proceed, or 'no' to cancel:
 **If user responds 'no' or anything other than 'yes':**
 Display:
 ```
-Cancelled. Review the file and run again when ready.
+Cancelled. Edit ~/.auto-andy/pending-approval.md and run again when ready.
 ```
 Exit.
 
