@@ -465,3 +465,65 @@ Display:
 Middleman config already exists at ~/.config/middleman/config.toml - skipping.
 ```
 Set `CONFIG_CREATED=false`.
+
+## Phase 5: Verify Installation
+
+Run smoke tests to confirm everything works.
+
+### 5.1 Verify tools
+
+Run each verification and record results:
+
+```bash
+# middleman
+middleman --help >/dev/null 2>&1 && echo "middleman: OK" || echo "middleman: FAIL"
+
+# kata
+kata --help >/dev/null 2>&1 && echo "kata: OK" || echo "kata: FAIL"
+
+# glab
+glab --version >/dev/null 2>&1 && echo "glab: OK" || echo "glab: FAIL"
+
+# sqlite3
+sqlite3 --version >/dev/null 2>&1 && echo "sqlite3: OK" || echo "sqlite3: FAIL"
+```
+
+### 5.2 Verify token
+
+```bash
+test -n "$MIDDLEMAN_GITLAB_FLATIRON_TOKEN" && echo "GitLab token: OK" || echo "GitLab token: FAIL"
+```
+
+### 5.3 Verify state directory
+
+```bash
+test -d ~/.auto-andy && echo "State directory: OK" || echo "State directory: FAIL"
+```
+
+### 5.4 Verify middleman config
+
+```bash
+test -f ~/.config/middleman/config.toml && echo "Middleman config: OK" || echo "Middleman config: FAIL"
+```
+
+### 5.5 Display Verification Results
+
+Display:
+```
+## Verification Results
+
+| Component | Status |
+|-----------|--------|
+| middleman | $MIDDLEMAN_VERIFY |
+| kata | $KATA_VERIFY |
+| glab | $GLAB_VERIFY |
+| sqlite3 | $SQLITE_VERIFY |
+| GitLab token | $TOKEN_VERIFY |
+| State directory | $STATE_VERIFY |
+| Middleman config | $CONFIG_VERIFY |
+```
+
+**If any FAIL:** Display warning:
+```
+Warning: Some components failed verification. See details above.
+```
