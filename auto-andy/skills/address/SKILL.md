@@ -46,14 +46,16 @@ Exit.
 
 **If `RESET_MODE=true`:**
 ```bash
-rm -f ~/.auto-andy/pending-approval.md
-echo "Cleared pending-approval.md"
+rm -rf ~/.auto-andy/pending/
+mkdir -p ~/.auto-andy/pending
+echo "Cleared all pending approval documents"
 ```
 
 ## Phase 1: Ensure State Directory
 
 Run:
 ```bash
+mkdir -p ~/.auto-andy/pending
 mkdir -p ~/.auto-andy/specs
 mkdir -p ~/.auto-andy/history
 ```
@@ -293,31 +295,52 @@ SPEC_PATH: ~/.auto-andy/specs/$PROJECT_NAME/$TASK_ID-spec.md
 REASON: $LOW_CONFIDENCE_REASON
 ```
 
-## Phase 4: Generate Approval Document
+## Phase 4: Generate Approval Documents (Per-MR)
 
-### 4.1 Check for existing approval doc
+Pending approval documents are namespaced by MR to allow independent review and posting.
 
-Read `~/.auto-andy/pending-approval.md` if it exists.
+### 4.1 Group results by MR
 
-### 4.2 Build approval document
+Group all processed tasks by their MR (using `$OWNER/$REPO` and `$MR_NUMBER` from the dedupe_key).
 
-Write to `~/.auto-andy/pending-approval.md`:
+### 4.2 For each MR, create/update approval document
+
+For each unique MR:
+
+**Determine file path:**
+```
+~/.auto-andy/pending/$OWNER/$REPO/mr-$MR_NUMBER.md
+```
+
+Example: `~/.auto-andy/pending/rwe/foundry/llm-infra/mr-420.md`
+
+**Create directory if needed:**
+```bash
+mkdir -p ~/.auto-andy/pending/$OWNER/$REPO
+```
+
+**Check for existing approval doc for this MR:**
+Read `~/.auto-andy/pending/$OWNER/$REPO/mr-$MR_NUMBER.md` if it exists.
+
+**Write/update the approval document:**
 
 ```markdown
 # Auto-Andy Pending Approval
 
-Generated: $(date -u +"%Y-%m-%d %H:%M:%S")
+**MR:** $OWNER/$REPO !$MR_NUMBER
+**Branch:** $HEAD_BRANCH
+**Generated:** $(date -u +"%Y-%m-%d %H:%M:%S")
 
 ## Changes Made
 
-| Project | Task | Commit | Response |
-|---------|------|--------|----------|
+| Task | Commit | Response |
+|------|--------|----------|
 $CHANGES_TABLE_ROWS
 
 ## Specs Started (Need Manual Review)
 
-| Project | Task | Spec Path | Reason |
-|---------|------|-----------|--------|
+| Task | Spec Path | Reason |
+|------|-----------|--------|
 $SPECS_TABLE_ROWS
 
 ## Proposed MR Comments
@@ -328,14 +351,14 @@ $PROPOSED_COMMENTS_SECTION
 
 **To post these comments after review:**
 ```
-/auto-andy:post-comments
+/auto-andy:post-comments $OWNER/$REPO !$MR_NUMBER
 ```
 ```
 
-Where `$PROPOSED_COMMENTS_SECTION` contains for each addressed task:
+Where `$PROPOSED_COMMENTS_SECTION` contains for each addressed task in this MR:
 
 ```markdown
-### $PROJECT_NAME MR !$MR_NUMBER - Comment by @$AUTHOR
+### Comment by @$AUTHOR
 <!-- dedupe_key: $DEDUPE_KEY -->
 <!-- kata_task: $TASK_ID -->
 > Original: "$ORIGINAL_COMMENT_TRUNCATED"
@@ -346,9 +369,9 @@ $DRAFTED_RESPONSE
 ---
 ```
 
-### 4.3 If appending to existing doc
+### 4.3 If appending to existing MR doc
 
-If `pending-approval.md` already exists (and `--reset` not used):
+If the MR's approval doc already exists (and `--reset` not used):
 - Read existing content
 - Append new entries to each section
 - Deduplicate by task ID (skip if task already present)
@@ -373,9 +396,10 @@ Display:
 
 ### Next Steps
 
-1. Review: `cat ~/.auto-andy/pending-approval.md`
-2. Edit responses as needed
-3. Post: `/auto-andy:post-comments`
+1. Review pending approvals: `ls ~/.auto-andy/pending/*/*/`
+2. Edit responses as needed in the per-MR files
+3. Post for a specific MR: `/auto-andy:post-comments owner/repo !123`
+4. Or post all pending: `/auto-andy:post-comments --all`
 
 $DRY_RUN_NOTE
 ```
@@ -385,7 +409,7 @@ $DRY_RUN_NOTE
 **Tool Restrictions:**
 - **Bash:** Git operations, kata CLI, test commands, mkdir
 - **Read:** Task bodies, code files, existing approval doc
-- **Write:** `~/.auto-andy/pending-approval.md`, `~/.auto-andy/specs/**`
+- **Write:** `~/.auto-andy/pending/**/*.md`, `~/.auto-andy/specs/**`
 - **Edit:** Code files in project directories only
 - **Agent:** For parallel project processing
 - **Skill(roborev-refine):** For code quality validation

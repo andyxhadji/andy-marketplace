@@ -14,37 +14,81 @@ Read the approved `pending-approval.md`, post responses to the original MR comme
 
 The user's argument (if any) is: $ARGUMENTS
 
-**Supported flags:**
+**Supported formats:**
+- `owner/repo !123` - Post comments for a specific MR
+- `--all` - Post comments for all pending MRs
 - `--dry-run` - Show what would be posted without actually posting
-- No flags - Post all approved comments
+- `--list` - List all pending approval files
+
+**Examples:**
+```
+/auto-andy:post-comments rwe/foundry/llm-infra !420
+/auto-andy:post-comments --all
+/auto-andy:post-comments --all --dry-run
+/auto-andy:post-comments --list
+```
 
 ## Phase 0: Parse Arguments
 
 Parse `$ARGUMENTS` for:
+- MR reference pattern `owner/repo !number` - Set `TARGET_MR` (e.g., `rwe/foundry/llm-infra !420`)
+- `--all` - Set `POST_ALL=true`
 - `--dry-run` - Set `DRY_RUN=true`
-- Default: `DRY_RUN=false`
+- `--list` - Set `LIST_MODE=true`
 
-## Phase 1: Verify Prerequisites
-
-### 1.1 Check approval doc exists
-
-Run:
+**If `LIST_MODE=true`:**
 ```bash
-test -f ~/.auto-andy/pending-approval.md && echo "exists" || echo "missing"
+find ~/.auto-andy/pending -name "mr-*.md" -type f 2>/dev/null
 ```
+Display the list and exit.
 
-**If "missing":**
+**If neither `TARGET_MR` nor `--all` is provided:**
 Display:
 ```
-No pending approval document found at ~/.auto-andy/pending-approval.md
+Error: Specify an MR or use --all.
+
+Usage:
+  /auto-andy:post-comments owner/repo !123   # Post for specific MR
+  /auto-andy:post-comments --all             # Post all pending
+  /auto-andy:post-comments --list            # List pending files
+```
+Exit.
+
+## Phase 1: Discover Approval Documents
+
+### 1.1 Find approval documents to process
+
+**If `TARGET_MR` is set (e.g., `rwe/foundry/llm-infra !420`):**
+
+Parse the MR reference to extract `OWNER`, `REPO`, and `MR_NUMBER`.
+Construct the file path: `~/.auto-andy/pending/$OWNER/$REPO/mr-$MR_NUMBER.md`
+
+```bash
+APPROVAL_FILE=~/.auto-andy/pending/$OWNER/$REPO/mr-$MR_NUMBER.md
+test -f "$APPROVAL_FILE" && echo "exists" || echo "missing"
+```
+
+**If `POST_ALL=true`:**
+
+Find all pending approval files:
+```bash
+find ~/.auto-andy/pending -name "mr-*.md" -type f
+```
+
+Set `APPROVAL_FILES` to the list of found files.
+
+**If no files found:**
+Display:
+```
+No pending approval documents found.
 
 Nothing to post. Run /auto-andy:address --auto first to generate pending approvals.
 ```
 Exit.
 
-### 1.2 Read approval document
+### 1.2 Read approval documents
 
-Read `~/.auto-andy/pending-approval.md`.
+For each approval file, read its contents.
 
 ### 1.3 Parse proposed comments
 
@@ -262,31 +306,40 @@ kata label $KATA_TASK_ID --add responded
 kata close $KATA_TASK_ID --comment "Response posted to MR: $COMMENT_URL"
 ```
 
-## Phase 5: Archive Approval Document
+## Phase 5: Archive Approval Documents
 
 **If `DRY_RUN=false` and at least one comment was posted:**
+
+For each approval file that was fully processed (all comments posted successfully):
 
 ### 5.1 Create archive directory
 
 ```bash
 ARCHIVE_DIR=~/.auto-andy/history/$(date +"%Y-%m-%d-%H%M%S")
-mkdir -p "$ARCHIVE_DIR"
+mkdir -p "$ARCHIVE_DIR/$OWNER/$REPO"
 ```
 
 ### 5.2 Move approval doc to archive
 
 ```bash
-mv ~/.auto-andy/pending-approval.md "$ARCHIVE_DIR/approval.md"
+mv ~/.auto-andy/pending/$OWNER/$REPO/mr-$MR_NUMBER.md "$ARCHIVE_DIR/$OWNER/$REPO/mr-$MR_NUMBER.md"
 ```
 
-### 5.3 If some comments failed
+### 5.3 Clean up empty directories
 
-**If `FAILED_COUNT > 0`:**
+```bash
+rmdir ~/.auto-andy/pending/$OWNER/$REPO 2>/dev/null || true
+rmdir ~/.auto-andy/pending/$OWNER 2>/dev/null || true
+```
 
-Create new pending-approval.md with only the failed comments:
-- Copy header
-- Include only the comments that failed to post
-- Note in header: "Regenerated after partial post - contains only failed comments"
+### 5.4 If some comments failed
+
+**If `FAILED_COUNT > 0` for an MR:**
+
+Keep the approval file in place but update it:
+- Remove successfully posted comments
+- Keep only the comments that failed to post
+- Add note in header: "Partial post - contains only failed comments"
 
 ## Phase 6: Output Summary
 
@@ -316,8 +369,8 @@ Where:
 
 **Tool Restrictions:**
 - **Bash:** curl for API calls, kata CLI, sqlite3 queries, file operations
-- **Read:** `~/.auto-andy/pending-approval.md` only
-- **Write:** `~/.auto-andy/pending-approval.md` (for failed-only regeneration)
+- **Read:** `~/.auto-andy/pending/**/*.md`
+- **Write:** `~/.auto-andy/pending/**/*.md` (for failed-only regeneration)
 - **AskUserQuestion:** For confirmation before posting
 
 **Security:**
