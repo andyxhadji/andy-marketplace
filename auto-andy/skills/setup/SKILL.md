@@ -367,3 +367,101 @@ mkdir -p ~/.auto-andy/pending ~/.auto-andy/specs ~/.auto-andy/history
 ```bash
 ls -la ~/.auto-andy/
 ```
+
+## Phase 4: Configure
+
+### 4.1 Configure GitLab Token
+
+**If `TOKEN_SET=false` and `SKIP_TOKEN=false`:**
+
+Prompt user using AskUserQuestion:
+```
+Enter your GitLab personal access token for git.the.flatiron.com (needs api scope):
+
+To create a token:
+1. Go to https://git.the.flatiron.com/-/user_settings/personal_access_tokens
+2. Create a token with 'api' scope
+3. Copy and paste the token here
+```
+
+Store response as `GITLAB_TOKEN`.
+
+**If user cancels or provides empty token:**
+Display warning:
+```
+Warning: No token provided. You can set it later by adding to your shell RC file:
+  export MIDDLEMAN_GITLAB_FLATIRON_TOKEN="your-token-here"
+```
+Set `TOKEN_CONFIGURED=false` and continue.
+
+**If token provided:**
+
+Add to shell RC file based on `SHELL_NAME`:
+
+**zsh/bash:** Append to `$RC_FILE`:
+```bash
+echo '' >> $RC_FILE
+echo '# Auto-andy GitLab token' >> $RC_FILE
+echo 'export MIDDLEMAN_GITLAB_FLATIRON_TOKEN="$GITLAB_TOKEN"' >> $RC_FILE
+```
+
+**fish:** Append to `~/.config/fish/config.fish`:
+```bash
+mkdir -p ~/.config/fish
+echo '' >> ~/.config/fish/config.fish
+echo '# Auto-andy GitLab token' >> ~/.config/fish/config.fish
+echo 'set -gx MIDDLEMAN_GITLAB_FLATIRON_TOKEN "$GITLAB_TOKEN"' >> ~/.config/fish/config.fish
+```
+
+**Export for current session:**
+```bash
+export MIDDLEMAN_GITLAB_FLATIRON_TOKEN="$GITLAB_TOKEN"
+```
+
+Set `TOKEN_CONFIGURED=true`.
+
+### 4.2 Configure Middleman
+
+**If `MIDDLEMAN_CONFIG_EXISTS=false`:**
+
+Create directory:
+```bash
+mkdir -p ~/.config/middleman
+```
+
+Write config file using Write tool to `~/.config/middleman/config.toml`:
+
+```toml
+sync_interval = "5m"
+github_token_env = "MIDDLEMAN_GITHUB_TOKEN"
+default_platform_host = "github.com"
+host = "127.0.0.1"
+port = 8091
+
+[activity]
+view_mode = "threaded"
+time_range = "7d"
+
+[[platforms]]
+type = "gitlab"
+host = "git.the.flatiron.com"
+token_env = "MIDDLEMAN_GITLAB_FLATIRON_TOKEN"
+
+# Add repos via the Settings UI at http://localhost:8091
+# Or add [[repos]] sections here:
+#
+# [[repos]]
+# platform = "gitlab"
+# platform_host = "git.the.flatiron.com"
+# owner = "your-group"
+# name = "your-repo"
+```
+
+Set `CONFIG_CREATED=true`.
+
+**If config already exists:**
+Display:
+```
+Middleman config already exists at ~/.config/middleman/config.toml - skipping.
+```
+Set `CONFIG_CREATED=false`.
