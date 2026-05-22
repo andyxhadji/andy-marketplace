@@ -101,6 +101,7 @@ SELECT
     e.author,
     e.body,
     e.created_at,
+    e.platform_external_id,
     mr.number as mr_number,
     mr.title as mr_title,
     mr.url as mr_url,
@@ -129,6 +130,7 @@ For each row returned, extract:
 - `dedupe_key`: e.dedupe_key
 - `author`: e.author
 - `body`: e.body (the comment text)
+- `platform_external_id`: e.platform_external_id (the note/comment ID on the platform)
 - `mr_number`: mr.number
 - `mr_title`: mr.title
 - `mr_url`: mr.url
@@ -137,6 +139,12 @@ For each row returned, extract:
 - `repo_owner`: r.owner
 - `platform`: r.platform
 - `platform_host`: r.platform_host
+
+**Construct comment URL based on platform:**
+- GitLab: `$MR_URL#note_$PLATFORM_EXTERNAL_ID`
+- GitHub: `$MR_URL#issuecomment-$PLATFORM_EXTERNAL_ID`
+
+Store as `COMMENT_URL`.
 
 **If no rows returned:**
 Display:
@@ -201,14 +209,15 @@ Extract a title from the comment:
 - If comment starts with "nit:", "suggestion:", etc.: use that prefix + first phrase
 - Otherwise: extract first sentence or first 80 chars
 
-Create the task:
+Create the task (note: title is a positional argument, not a flag):
 ```bash
-kata create --project "$REPO_NAME" --label from-mr --label auto-andy --title "$EXTRACTED_TITLE" --body "$(cat <<'BODY'
+kata create "$EXTRACTED_TITLE" --project "$REPO_NAME" --label from-mr --label auto-andy --body "$(cat <<'BODY'
 ## MR Comment
 
 **From:** @$AUTHOR
 **MR:** $MR_TITLE ($MR_URL)
 **Branch:** $HEAD_BRANCH
+**Comment:** $COMMENT_URL
 
 ### Original Comment
 
