@@ -121,3 +121,106 @@ Display:
 | RC File | $RC_FILE |
 | Package Manager | $PKG_MANAGER |
 ```
+
+## Phase 2: Check Prerequisites
+
+Check each prerequisite and record status.
+
+### 2.1 Check Go
+
+Run:
+```bash
+go version 2>/dev/null
+```
+
+**If exits 0 and output contains "go1.2[6-9]" or "go1.[3-9]":** Set `GO_INSTALLED=true`, extract version.
+**Otherwise:** Set `GO_INSTALLED=false`.
+
+### 2.2 Check glab
+
+Run:
+```bash
+which glab >/dev/null 2>&1 && glab --version 2>/dev/null | head -1
+```
+
+**If exits 0:** Set `GLAB_INSTALLED=true`, extract version.
+**Otherwise:** Set `GLAB_INSTALLED=false`.
+
+### 2.3 Check sqlite3
+
+Run:
+```bash
+which sqlite3 >/dev/null 2>&1 && sqlite3 --version 2>/dev/null | head -1
+```
+
+**If exits 0:** Set `SQLITE_INSTALLED=true`, extract version.
+**Otherwise:** Set `SQLITE_INSTALLED=false`.
+
+### 2.4 Check middleman
+
+Run:
+```bash
+which middleman >/dev/null 2>&1 && middleman version 2>&1 | head -1
+```
+
+**If exits 0:** Set `MIDDLEMAN_INSTALLED=true`, extract version.
+**Otherwise:** Set `MIDDLEMAN_INSTALLED=false`.
+
+### 2.5 Check kata
+
+Run:
+```bash
+which kata >/dev/null 2>&1 && kata version 2>&1 | head -1
+```
+
+**If exits 0:** Set `KATA_INSTALLED=true`, extract version.
+**Otherwise:** Set `KATA_INSTALLED=false`.
+
+### 2.6 Check state directory
+
+Run:
+```bash
+test -d ~/.auto-andy && echo "exists" || echo "missing"
+```
+
+Set `STATE_DIR_EXISTS` accordingly.
+
+### 2.7 Check GitLab token
+
+Run:
+```bash
+test -n "$MIDDLEMAN_GITLAB_FLATIRON_TOKEN" && echo "set" || echo "missing"
+```
+
+Set `TOKEN_SET` accordingly.
+
+### 2.8 Check middleman config
+
+Run:
+```bash
+test -f ~/.config/middleman/config.toml && echo "exists" || echo "missing"
+```
+
+Set `MIDDLEMAN_CONFIG_EXISTS` accordingly.
+
+### 2.9 Display Status Table
+
+Display:
+```
+## Prerequisite Status
+
+| Prerequisite | Status | Version/Details |
+|--------------|--------|-----------------|
+| Go 1.26+ | $GO_STATUS | $GO_VERSION |
+| glab | $GLAB_STATUS | $GLAB_VERSION |
+| sqlite3 | $SQLITE_STATUS | $SQLITE_VERSION |
+| middleman | $MIDDLEMAN_STATUS | $MIDDLEMAN_VERSION |
+| kata | $KATA_STATUS | $KATA_VERSION |
+| State directory | $STATE_DIR_STATUS | ~/.auto-andy |
+| GitLab token | $TOKEN_STATUS | MIDDLEMAN_GITLAB_FLATIRON_TOKEN |
+| Middleman config | $CONFIG_STATUS | ~/.config/middleman/config.toml |
+```
+
+Where status is "OK" (green checkmark implied) or "Missing".
+
+**If `CHECK_ONLY=true`:** Stop here and exit.
