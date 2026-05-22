@@ -100,6 +100,7 @@ Extract:
 - `OWNER`: repo owner
 - `REPO`: repo name
 - `MR_NUMBER`: merge request number
+- `ORIGINAL_NOTE_ID`: the note ID to reply to (e.g., 2474284)
 
 ### 2.2 Get API token
 
@@ -160,13 +161,17 @@ Continue to next comment.
 
 **If `PLATFORM=gitlab`:**
 
+Post as a reply to the original comment thread using `in_reply_to_id`:
+
 ```bash
 curl -s -X POST \
   "https://$PLATFORM_HOST/api/v4/projects/$PROJECT_ID/merge_requests/$MR_NUMBER/notes" \
   -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"body\": \"$ESCAPED_RESPONSE_TEXT\"}"
+  -d "{\"body\": \"$ESCAPED_RESPONSE_TEXT\", \"in_reply_to_id\": $ORIGINAL_NOTE_ID}"
 ```
+
+This ensures the response appears as a threaded reply to the reviewer's original comment, not as a standalone MR comment.
 
 **Check response:**
 - If response contains `"id":` - success
@@ -176,13 +181,17 @@ curl -s -X POST \
 
 **If `PLATFORM=github`:**
 
+For PR review comments, post as a reply to the review thread:
+
 ```bash
 curl -s -X POST \
-  "https://api.github.com/repos/$OWNER/$REPO/issues/$MR_NUMBER/comments" \
+  "https://api.github.com/repos/$OWNER/$REPO/pulls/$MR_NUMBER/comments/$ORIGINAL_NOTE_ID/replies" \
   -H "Authorization: Bearer $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github+json" \
   -d "{\"body\": \"$ESCAPED_RESPONSE_TEXT\"}"
 ```
+
+This ensures the response appears as a threaded reply to the reviewer's original comment.
 
 **Check response:**
 - If response contains `"id":` - success
