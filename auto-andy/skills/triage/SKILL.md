@@ -8,7 +8,7 @@ allowed-tools: [Bash, Read, Write, AskUserQuestion]
 
 ## Objective
 
-Query middleman's SQLite database for new MR comments since last triage, identify actionable comments (explicit requests/questions), and create kata tasks for each.
+Query middleman's SQLite database for new MR comments on **your own MRs/PRs** since last triage, identify actionable comments (explicit requests/questions), and create kata tasks for each.
 
 ## Arguments
 
@@ -28,7 +28,22 @@ Parse `$ARGUMENTS` for:
 
 ## Phase 1: Verify Prerequisites
 
-### 1.1 Check middleman is running
+### 1.1 Get current user's username
+
+Run:
+```bash
+git config user.email | sed 's/@.*//'
+```
+
+Store the result as `CURRENT_USER`. This extracts the username portion of the git email (e.g., `andy@flatiron.com` → `andy`).
+
+**If empty or fails:** Display error and exit:
+```
+Error: Could not determine current user from git config.
+Please ensure git user.email is configured.
+```
+
+### 1.2 Check middleman is running
 
 Run:
 ```bash
@@ -49,7 +64,7 @@ To check status:
   middleman status
 ```
 
-### 1.2 Ensure state directory exists
+### 1.3 Ensure state directory exists
 
 Run:
 ```bash
@@ -100,6 +115,7 @@ JOIN middleman_repos r ON mr.repo_id = r.id
 WHERE e.event_type = 'issue_comment'
   AND e.created_at > '\$SINCE_TIMESTAMP'
   AND mr.state = 'open'
+  AND mr.author = '\$CURRENT_USER'
 ORDER BY e.created_at;
 "
 ```
@@ -231,6 +247,7 @@ Display summary:
 ```
 ## Triage Summary
 
+**User:** $CURRENT_USER
 **Time range:** $SINCE_TIMESTAMP to now
 **Repos processed:** $REPOS_PROCESSED
 
