@@ -106,9 +106,46 @@ Nothing to post.
 ```
 Exit.
 
-### 1.4 Display and confirm comments
+### 1.4 Fetch commit changes for validation
 
-**Display each comment with original and response side-by-side:**
+For each unique commit SHA mentioned in the approval document's "Changes Made" table:
+
+**Step 1: Identify the repo and commit**
+
+Parse the `<!-- dedupe_key: ... -->` to determine the repo location. Query middleman for the local worktree path:
+
+```bash
+sqlite3 ~/.config/middleman/middleman.db "
+SELECT pw.worktree_path
+FROM middleman_project_worktrees pw
+JOIN middleman_repos r ON pw.repo_id = r.id
+WHERE r.owner = '\$OWNER'
+  AND r.name = '\$REPO'
+  AND pw.branch = '\$HEAD_BRANCH';
+"
+```
+
+**Step 2: Get the diff for the commit**
+
+```bash
+cd "\$WORKTREE_PATH" && git show \$COMMIT_SHA --stat --format="%h %s"
+```
+
+Store the diff summary as `COMMIT_CHANGES` for display.
+
+**Step 3: For DiffNote comments, get the specific file diff**
+
+If the original comment was on a specific file (DiffNote), extract the relevant file changes:
+
+```bash
+cd "\$WORKTREE_PATH" && git show \$COMMIT_SHA -- "\$FILE_PATH"
+```
+
+Store as `FILE_DIFF` for that comment.
+
+### 1.5 Display and confirm comments
+
+**Display each comment with original, changes, and response:**
 
 For each proposed comment, display:
 ```
@@ -118,16 +155,28 @@ For each proposed comment, display:
 **Original comment:**
 > $ORIGINAL_COMMENT
 
+**Commit changes ($COMMIT_SHA):**
+\`\`\`diff
+$FILE_DIFF_OR_COMMIT_SUMMARY
+\`\`\`
+
 **Proposed response:**
 $PROPOSED_RESPONSE
 ---
 ```
+
+The commit changes section helps the user validate that:
+1. The proposed response accurately describes what was changed
+2. The changes actually address the reviewer's comment
+3. No discrepancies exist between the response and the actual diff
 
 **If `DRY_RUN=false`:**
 
 After displaying all comments, ask:
 ```
 The above $COMMENT_COUNT comments will be posted.
+
+Review the diffs to ensure responses match the actual changes.
 
 Type 'yes' to proceed, or 'no' to cancel:
 ```
