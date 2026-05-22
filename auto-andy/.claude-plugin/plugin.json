@@ -1,0 +1,9 @@
+{
+  "name": "auto-andy",
+  "description": "Automated MR comment triage and response using middleman, kata, and roborev",
+  "version": "1.0.0",
+  "author": {
+    "name": "Andy Hadjigeorgiou"
+  },
+  "commands": "./skills"
+}

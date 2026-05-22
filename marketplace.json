@@ -1,0 +1,14 @@
+{
+  "name": "andy-plugins",
+  "owner": {
+    "name": "Andy Hadjigeorgiou"
+  },
+  "description": "Andy's Claude Code plugins marketplace",
+  "plugins": [
+    {
+      "name": "auto-andy",
+      "source": "./auto-andy",
+      "description": "Automated MR comment triage and response using middleman, kata, and roborev"
+    }
+  ]
+}
