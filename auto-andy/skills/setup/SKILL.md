@@ -28,3 +28,11 @@ The user's argument (if any) is: $ARGUMENTS
 | sqlite3 | Query middleman database |
 | middleman | MR sync daemon |
 | kata | Task tracking CLI |
+
+## Phase 0: Parse Arguments
+
+Parse `$ARGUMENTS` for:
+- `--check` - Set `CHECK_ONLY=true`
+- `--force` - Set `FORCE_INSTALL=true`
+- `--skip-token` - Set `SKIP_TOKEN=true`
+- Default: `CHECK_ONLY=false`, `FORCE_INSTALL=false`, `SKIP_TOKEN=false`
