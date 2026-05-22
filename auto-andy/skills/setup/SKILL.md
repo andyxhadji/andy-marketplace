@@ -527,3 +527,49 @@ Display:
 ```
 Warning: Some components failed verification. See details above.
 ```
+
+## Phase 6: Report Summary
+
+Display final summary:
+
+```
+## Auto-Andy Setup Complete
+
+### Installed
+$INSTALLED_LIST
+
+### Configured
+$CONFIGURED_LIST
+
+### Next Steps
+
+1. Restart your shell or run: source $RC_FILE
+2. Start middleman: middleman
+3. Open http://localhost:8091 and add repos via Settings
+4. Run: /auto-andy:triage
+```
+
+Where:
+- `$INSTALLED_LIST` lists each tool that was installed with version (e.g., "- Go 1.26.3", "- middleman (go.kenn.io/middleman@latest)")
+- `$CONFIGURED_LIST` lists configuration changes (e.g., "- GitLab token added to ~/.zshrc", "- Middleman config created at ~/.config/middleman/config.toml")
+
+**If nothing was installed/configured:**
+```
+All prerequisites were already installed and configured. auto-andy is ready to use.
+
+Run: /auto-andy:triage
+```
+
+## Constraints
+
+**Tool Restrictions:**
+- **Bash:** Package manager commands (brew, apt, dnf), go install, mkdir, echo, test, which
+- **Read:** Shell RC files (to check for existing token export), ~/.config/middleman/config.toml
+- **Write:** Shell RC files (append token export), ~/.config/middleman/config.toml
+- **AskUserQuestion:** Token prompt only
+
+**Security:**
+- Token is prompted interactively, never logged or displayed after entry
+- Token is written only to user's RC file with appropriate permissions
+- No tokens are hardcoded or committed
+- All file writes are to user home directory only
