@@ -224,3 +224,146 @@ Display:
 Where status is "OK" (green checkmark implied) or "Missing".
 
 **If `CHECK_ONLY=true`:** Stop here and exit.
+
+## Phase 3: Install Missing Prerequisites
+
+Install each missing prerequisite in dependency order. Skip if already installed (unless `FORCE_INSTALL=true`).
+
+### 3.1 Install Go (if missing)
+
+**If `GO_INSTALLED=false` or `FORCE_INSTALL=true`:**
+
+**macOS:**
+```bash
+brew install go
+```
+
+**Linux (apt):**
+```bash
+sudo apt update && sudo apt install -y golang
+```
+
+**Linux (dnf):**
+```bash
+sudo dnf install -y golang
+```
+
+**Verify installation:**
+```bash
+go version
+```
+
+**If fails:** Display error:
+```
+Error: Failed to install Go.
+
+Manual installation:
+  macOS: brew install go
+  Linux: sudo apt install golang
+  Or visit: https://go.dev/doc/install
+```
+
+### 3.2 Install glab (if missing)
+
+**If `GLAB_INSTALLED=false` or `FORCE_INSTALL=true`:**
+
+**macOS:**
+```bash
+brew install glab
+```
+
+**Linux (apt):**
+```bash
+sudo apt install -y glab
+```
+
+**Linux (dnf):**
+```bash
+sudo dnf install -y glab
+```
+
+**Verify installation:**
+```bash
+glab --version
+```
+
+**If fails:** Display error:
+```
+Error: Failed to install glab.
+
+Manual installation:
+  macOS: brew install glab
+  Linux: See https://gitlab.com/gitlab-org/cli/-/releases
+```
+
+### 3.3 Install middleman (if missing)
+
+**If `MIDDLEMAN_INSTALLED=false` or `FORCE_INSTALL=true`:**
+
+Run:
+```bash
+go install go.kenn.io/middleman@latest
+```
+
+**If fails:** Retry once:
+```bash
+go install go.kenn.io/middleman@latest
+```
+
+**If still fails:** Display error:
+```
+Error: Failed to install middleman.
+
+Manual installation:
+  go install go.kenn.io/middleman@latest
+
+Ensure ~/go/bin is in your PATH.
+```
+
+**Verify installation:**
+```bash
+which middleman && middleman version
+```
+
+### 3.4 Install kata (if missing)
+
+**If `KATA_INSTALLED=false` or `FORCE_INSTALL=true`:**
+
+Run:
+```bash
+go install go.kenn.io/kata/cmd/kata@latest
+```
+
+**If fails:** Retry once:
+```bash
+go install go.kenn.io/kata/cmd/kata@latest
+```
+
+**If still fails:** Display error:
+```
+Error: Failed to install kata.
+
+Manual installation:
+  go install go.kenn.io/kata/cmd/kata@latest
+
+Ensure ~/go/bin is in your PATH.
+```
+
+**Verify installation:**
+```bash
+which kata && kata version
+```
+
+### 3.5 Create state directory (if missing)
+
+**If `STATE_DIR_EXISTS=false`:**
+
+Run:
+```bash
+mkdir -p ~/.auto-andy/pending ~/.auto-andy/specs ~/.auto-andy/history
+```
+
+**Verify:**
+```bash
+ls -la ~/.auto-andy/
+```
