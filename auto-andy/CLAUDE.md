@@ -26,6 +26,8 @@ Query middleman for new MR comments and create kata tasks.
 
 Process kata tasks, auto-address high-confidence tasks, create specs for complex ones.
 
+Uses `kata ready --unowned` to find tasks that are ready and unclaimed, then `kata claim` before processing each task. This prevents multiple agents from working on the same task.
+
 ```
 /auto-andy:address --auto              # Process all projects
 /auto-andy:address --auto --project ml-llms  # Single project
