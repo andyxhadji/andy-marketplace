@@ -60,18 +60,22 @@ mkdir -p ~/.auto-andy/specs
 mkdir -p ~/.auto-andy/history
 ```
 
-## Phase 2: Discover Tasks
+## Phase 2: Discover Ready, Unowned Tasks
 
-### 2.1 Query kata for auto-andy tasks
+### 2.1 Query kata for ready, unowned auto-andy tasks
+
+Use `kata ready --unowned` to find tasks that are:
+- Ready to work on (no open blocking predecessors)
+- Not owned by any actor (available to claim)
 
 Run:
 ```bash
-kata list --label auto-andy --state open --json
+kata ready --unowned --label auto-andy --json
 ```
 
 **If `TARGET_PROJECT` is set:**
 ```bash
-kata list --project "$TARGET_PROJECT" --label auto-andy --state open --json
+kata ready --project "$TARGET_PROJECT" --unowned --label auto-andy --json
 ```
 
 ### 2.2 Parse and group by project
@@ -81,8 +85,12 @@ Parse JSON output to extract tasks. Group tasks by project name.
 **If no tasks found:**
 Display:
 ```
-No open tasks with 'auto-andy' label found.
+No ready, unowned tasks with 'auto-andy' label found.
 Nothing to process.
+
+Hint: Tasks may be blocked, already owned, or not exist.
+  - Check all auto-andy tasks: kata list --label auto-andy --state open
+  - Check owned tasks: kata list --label auto-andy --owner $USER
 ```
 Exit with success.
 
@@ -126,7 +134,20 @@ Working directory for this project: [determine from middleman or local clone]
 
 For each task:
 
-#### 3.1 Get task details
+#### 3.1 Claim the task
+
+Before processing, claim ownership to prevent other agents from picking it up:
+
+```bash
+kata claim $TASK_ID --comment "Claimed by auto-andy for automated processing"
+```
+
+**If claim fails (already owned):**
+- Skip this task
+- Log: `Skipping task #$TASK_ID - already claimed by another actor`
+- Continue to next task
+
+#### 3.2 Get task details
 
 ```bash
 kata show $TASK_ID --json
@@ -139,7 +160,7 @@ Parse the body to extract:
 - `HEAD_BRANCH`: Branch to work on
 - `AUTHOR`: Comment author
 
-#### 3.2 Analyze complexity and confidence
+#### 3.3 Analyze complexity and confidence
 
 Analyze the comment and determine:
 - **Complexity score (1-5):**
@@ -153,7 +174,7 @@ Analyze the comment and determine:
   - How confident are you that you can correctly address this comment?
   - Consider: clarity of request, scope, dependencies, ambiguity
 
-#### 3.3 Branch based on confidence
+#### 3.4 Branch based on confidence
 
 **If confidence > 80% (HIGH CONFIDENCE):**
 
@@ -391,6 +412,7 @@ Display:
 |---------|-------|
 | Tasks addressed | $ADDRESSED_COUNT |
 | Specs created | $SPECS_COUNT |
+| Skipped (already claimed) | $CLAIMED_COUNT |
 | Skipped (stale MR) | $STALE_COUNT |
 | Failed | $FAILED_COUNT |
 
