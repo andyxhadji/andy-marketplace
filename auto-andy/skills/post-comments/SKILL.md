@@ -206,20 +206,44 @@ Extract:
 - `MR_NUMBER`: merge request number
 - `ORIGINAL_NOTE_ID`: the note ID to reply to (e.g., 2474284)
 
-### 2.2 Verify middleman is running
+### 2.2 Get API token
 
+**For GitLab (platform = "gitlab"):**
 ```bash
-curl -s http://127.0.0.1:8091/api/v1/health 2>/dev/null || echo "middleman not running"
+echo $MIDDLEMAN_GITLAB_FLATIRON_TOKEN
 ```
 
-**If middleman is not running:**
+**For GitHub (platform = "github"):**
+```bash
+echo $MIDDLEMAN_GITHUB_TOKEN
+```
+
+**If token is empty:**
 Display error:
 ```
-Error: middleman is not running.
+Error: No API token found for $PLATFORM.
 
-Start middleman first, or check `middleman status`.
+Set the environment variable:
+- GitLab: export MIDDLEMAN_GITLAB_FLATIRON_TOKEN=<your-token>
+- GitHub: export MIDDLEMAN_GITHUB_TOKEN=<your-token>
 ```
 Exit.
+
+### 2.3 Get project ID for GitLab
+
+**For GitLab only:**
+
+Query middleman for project ID:
+```bash
+sqlite3 ~/.config/middleman/middleman.db "
+SELECT platform_repo_id
+FROM middleman_repos
+WHERE platform = 'gitlab'
+  AND platform_host = '$PLATFORM_HOST'
+  AND owner = '$OWNER'
+  AND name = '$REPO';
+"
+```
 
 ## Phase 3: Post Comments
 
@@ -237,49 +261,72 @@ $RESPONSE_TEXT
 ```
 Continue to next comment.
 
-### 3.2 Look up discussion_id from middleman
+### 3.2 Post to GitLab
 
-Query middleman's database for the `thread_id` (discussion_id) of the original note:
+**If `PLATFORM=gitlab`:**
+
+**Step 1: Look up the discussion_id for the original note**
+
+GitLab has two types of MR comments:
+- **Regular notes**: General MR comments (use `in_reply_to_id`)
+- **DiffNotes**: Code review comments on specific lines (require posting to the discussion endpoint)
+
+To reply correctly, first look up the discussion containing the original note:
 
 ```bash
-sqlite3 ~/.config/middleman/middleman.db "
-SELECT thread_id
-FROM middleman_mr_events
-WHERE dedupe_key = '$DEDUPE_KEY';
-"
+glab api "projects/$PROJECT_ID/merge_requests/$MR_NUMBER/discussions" | \
+  jq -r '.[] | select(.notes[].id == '$ORIGINAL_NOTE_ID') | .id'
 ```
 
-The `thread_id` is a 40-character hex string (e.g., `a1b2c3d4e5f6...`).
+This returns the `DISCUSSION_ID` if the note is part of a discussion thread.
 
-**If thread_id is NULL or empty:**
+**Step 2: Post the reply**
 
-This is a top-level MR comment without a discussion thread. Post a new top-level comment:
+**If DISCUSSION_ID was found (DiffNote/code review comment):**
+
+Post to the discussions endpoint to create a threaded reply:
+
+```bash
+glab api -X POST \
+  "projects/$PROJECT_ID/merge_requests/$MR_NUMBER/discussions/$DISCUSSION_ID/notes" \
+  -f body="$RESPONSE_TEXT"
+```
+
+**If no DISCUSSION_ID (regular MR note):**
+
+Fall back to the notes endpoint with `in_reply_to_id`:
 
 ```bash
 curl -s -X POST \
-  "http://127.0.0.1:8091/api/v1/providers/$PLATFORM/repos/$OWNER/$REPO/pulls/$MR_NUMBER/comments" \
+  "https://$PLATFORM_HOST/api/v4/projects/$PROJECT_ID/merge_requests/$MR_NUMBER/notes" \
+  -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"body": "'"$ESCAPED_RESPONSE_TEXT"'"}'
+  -d "{\"body\": \"$ESCAPED_RESPONSE_TEXT\", \"in_reply_to_id\": $ORIGINAL_NOTE_ID}"
 ```
-
-### 3.3 Post reply via middleman
-
-**If thread_id was found:**
-
-Use middleman's discussion reply endpoint:
-
-```bash
-curl -s -X POST \
-  "http://127.0.0.1:8091/api/v1/providers/$PLATFORM/repos/$OWNER/$REPO/pulls/$MR_NUMBER/discussions/$THREAD_ID/reply" \
-  -H "Content-Type: application/json" \
-  -d '{"body": "'"$ESCAPED_RESPONSE_TEXT"'"}'
-```
-
-This works for both GitLab and GitHub - middleman handles the platform-specific API calls.
 
 **Check response:**
-- HTTP 201 with `"id":` in body - success
-- HTTP 4xx/5xx or `"error":` - failure
+- If response contains `"id":` - success
+- If response contains `"error":` or HTTP error - failure
+
+### 3.3 Post to GitHub
+
+**If `PLATFORM=github`:**
+
+For PR review comments, post as a reply to the review thread:
+
+```bash
+curl -s -X POST \
+  "https://api.github.com/repos/$OWNER/$REPO/pulls/$MR_NUMBER/comments/$ORIGINAL_NOTE_ID/replies" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  -d "{\"body\": \"$ESCAPED_RESPONSE_TEXT\"}"
+```
+
+This ensures the response appears as a threaded reply to the reviewer's original comment.
+
+**Check response:**
+- If response contains `"id":` - success
+- If response contains `"message":` with error - failure
 
 ### 3.4 Handle result
 
@@ -370,16 +417,12 @@ Where:
 ## Constraints
 
 **Tool Restrictions:**
-- **Bash:** curl for middleman API calls, kata CLI, sqlite3 queries, file operations
+- **Bash:** curl for API calls, kata CLI, sqlite3 queries, file operations
 - **Read:** `~/.auto-andy/pending/**/*.md`
 - **Write:** `~/.auto-andy/pending/**/*.md` (for failed-only regeneration)
 - **AskUserQuestion:** For confirmation before posting
 
-**Prerequisites:**
-- middleman must be running on `127.0.0.1:8091`
-- middleman handles authentication via its configured tokens
-
 **Security:**
-- All API calls go through middleman (no direct platform API calls)
+- API tokens read from environment variables only
 - middleman DB is read-only (SELECT queries only)
 - No modification of code or repo files
