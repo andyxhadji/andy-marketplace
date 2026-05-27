@@ -999,7 +999,7 @@ The /auto-andy:setup skill has been created at:
 Plugin version bumped to 1.8.0.
 
 To test:
-1. Clear plugin cache: rm -rf ~/.claude/plugins/cache/andy-marketplace/auto-andy
+1. Clear plugin cache: rm -rf ~/.claude/plugins/cache/marketplace/auto-andy
 2. Restart Claude Code
 3. Run: /auto-andy:setup --check
 ```

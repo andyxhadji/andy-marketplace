@@ -1,9 +1,9 @@
 {
-  "name": "andy-marketplace",
+  "name": "marketplace",
   "owner": {
     "name": "Andy Hadjigeorgiou"
   },
-  "description": "Andy's Claude Code plugins marketplace",
+  "description": "Claude Code plugins marketplace",
   "plugins": [
     {
       "name": "auto-andy",
