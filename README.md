@@ -1,11 +1,11 @@
-# andy-plugins
+# marketplace
 
-Andy's Claude Code plugins marketplace.
+Claude Code plugins marketplace.
 
 ## Installation
 
 ```bash
-claude plugin install git@github.com:andyxhadji/andy-plugins.git
+claude plugin install git@github.com:andyxhadji/marketplace.git
 ```
 
 ## Available Plugins
@@ -15,7 +15,7 @@ claude plugin install git@github.com:andyxhadji/andy-plugins.git
 Automated MR comment triage and response using middleman, kata, and roborev.
 
 ```bash
-claude plugin install git@github.com:andyxhadji/andy-plugins.git --name auto-andy
+claude plugin install git@github.com:andyxhadji/marketplace.git --name auto-andy
 ```
 
 **Skills:**
